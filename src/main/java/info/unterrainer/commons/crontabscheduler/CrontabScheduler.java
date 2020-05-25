@@ -1,6 +1,5 @@
 package info.unterrainer.commons.crontabscheduler;
 
-import java.net.SocketException;
 import java.time.ZonedDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,8 +42,7 @@ public class CrontabScheduler {
 	}
 
 	@Builder
-	public CrontabScheduler(final long period, final TimeUnit timeUnit, final Consumer<CrontabScheduler> setupHandler)
-			throws SocketException {
+	public CrontabScheduler(final long period, final TimeUnit timeUnit, final Consumer<CrontabScheduler> setupHandler) {
 
 		if (setupHandler != null)
 			setupHandler.accept(this);
