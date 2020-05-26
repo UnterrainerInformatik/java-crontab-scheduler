@@ -9,19 +9,17 @@ import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
 public abstract class BasicCrontabHandler {
 
-	protected String name;
-	protected Boolean enabled;
-	protected String data;
+	protected final String name;
+	protected final Boolean enabled;
+	protected final String data;
 
-	protected String cronDef;
-	protected CronParser parser;
-	protected CronDescriptor descriptor;
+	protected final String cronDef;
+	protected final CronParser parser;
+	protected final CronDescriptor descriptor;
 
 	protected Cron cron;
 	protected String description;
@@ -30,8 +28,15 @@ public abstract class BasicCrontabHandler {
 	protected ZonedDateTime lastChecked;
 	protected long millisTillNextExecution;
 
-	public void initWith(final String cronDef) {
+	public BasicCrontabHandler(final String name, final Boolean enabled, final String data, final String cronDef,
+			final CronParser parser, final CronDescriptor descriptor) {
+		super();
+		this.name = name;
+		this.enabled = enabled;
+		this.data = data;
 		this.cronDef = cronDef;
+		this.parser = parser;
+		this.descriptor = descriptor;
 		cron = parser.parse(cronDef);
 		cron.validate();
 		description = descriptor.describe(cron);
