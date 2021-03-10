@@ -5,14 +5,20 @@
 	<parent>
 	    <groupId>info.unterrainer.commons</groupId>
 	    <artifactId>parent-pom</artifactId>
-	    <version>0.1.1</version>
+	    <version>0.1.3</version>
 	</parent>
 
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>crontab-scheduler</artifactId>
-	<version>0.1.0</version>
+	<version>0.1.1</version>
 	<name>CrontabScheduler</name>
 	<packaging>jar</packaging>
+
+	<properties>
+		<name>Crontab-Scheduler</name>
+		<package-path>info/unterrainer/commons/crontabscheduler</package-path>
+		<packg-string>info.unterrainer.commons.crontabscheduler</packg-string>
+	</properties>
 
 	<dependencies>
 		<dependency>
