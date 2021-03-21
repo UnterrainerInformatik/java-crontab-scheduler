@@ -25,7 +25,15 @@ public class CrontabScheduler {
 		}
 	}
 
-	public void prepareUpdate() {
+	public BasicCrontabHandler removeHandler(@NonNull final String name) {
+		synchronized (this) {
+			if (!registeredHandlers.containsKey(name))
+				return null;
+			return registeredHandlers.remove(name);
+		}
+	}
+
+	public void prepareReplacingHandlers() {
 		synchronized (this) {
 			Map<String, BasicCrontabHandler> temp = registeredHandlers;
 			registeredHandlers = save;
@@ -34,10 +42,16 @@ public class CrontabScheduler {
 		}
 	}
 
-	public void finishUpdate() {
+	public void finishReplacingHandlers() {
 		synchronized (this) {
 			pollAndAdvanceHandlers(save);
 			save.clear();
+		}
+	}
+
+	public void clearHandlers() {
+		synchronized (this) {
+			registeredHandlers.clear();
 		}
 	}
 
