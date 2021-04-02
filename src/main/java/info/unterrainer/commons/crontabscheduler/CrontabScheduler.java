@@ -66,18 +66,18 @@ public class CrontabScheduler {
 	}
 
 	private void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		try {
-			synchronized (this) {
-				for (BasicCrontabHandler handler : handlers.values())
+		synchronized (this) {
+			for (BasicCrontabHandler handler : handlers.values())
+				try {
 					if (handler.getEnabled() != null) {
 						ZonedDateTime now = ZonedDateTime.now();
 						if (handler.shouldRun(now))
 							handler.handle(now);
 					}
-			}
-		} catch (Exception e) {
-			log.error("uncaught exception in Crontab-Scheduler loop", e);
-			e.printStackTrace();
+				} catch (Exception e) {
+					log.error("uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
+					e.printStackTrace();
+				}
 		}
 	}
 }
