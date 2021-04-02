@@ -76,7 +76,7 @@ public class CrontabScheduler {
 					}
 			}
 		} catch (Exception e) {
-			log.error("uncaught exception in Http-poller loop", e);
+			log.error("uncaught exception in Crontab-Scheduler loop", e);
 			e.printStackTrace();
 		}
 	}
