@@ -21,6 +21,8 @@ public class CrontabScheduler {
 
 	public void addHandler(final @NonNull BasicCrontabHandler handler, final String name) {
 		synchronized (this) {
+			if (handler == null)
+				throw new NullPointerException("Cannot insert null value as handler.");
 			registeredHandlers.put(name, handler);
 		}
 	}
