@@ -47,6 +47,9 @@ public class CrontabScheduler {
 	public void finishReplacingHandlers() {
 		synchronized (this) {
 			pollAndAdvanceHandlers(save);
+			for (BasicCrontabHandler h : registeredHandlers.values())
+				if (save.containsKey(h.getName()))
+					h.millisTillNextExecution = save.get(h.getName()).millisTillNextExecution;
 			save.clear();
 		}
 	}
@@ -64,7 +67,7 @@ public class CrontabScheduler {
 			setupHandler.accept(this);
 
 		executor = Executors.newSingleThreadScheduledExecutor();
-		executor.scheduleAtFixedRate(() -> pollAndAdvanceHandlers(registeredHandlers), 0, period, timeUnit);
+		executor.scheduleWithFixedDelay(() -> pollAndAdvanceHandlers(registeredHandlers), 0, period, timeUnit);
 	}
 
 	private void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
