@@ -21,6 +21,8 @@ public class CrontabScheduler {
 
 	public void addHandler(final @NonNull BasicCrontabHandler handler, final String name) {
 		synchronized (this) {
+			if (handler == null)
+				throw new NullPointerException("Cannot insert null value as handler.");
 			registeredHandlers.put(name, handler);
 		}
 	}
@@ -45,6 +47,9 @@ public class CrontabScheduler {
 	public void finishReplacingHandlers() {
 		synchronized (this) {
 			pollAndAdvanceHandlers(save);
+			for (BasicCrontabHandler h : registeredHandlers.values())
+				if (save.containsKey(h.getName()))
+					h.millisTillNextExecution = save.get(h.getName()).millisTillNextExecution;
 			save.clear();
 		}
 	}
@@ -62,22 +67,22 @@ public class CrontabScheduler {
 			setupHandler.accept(this);
 
 		executor = Executors.newSingleThreadScheduledExecutor();
-		executor.scheduleAtFixedRate(() -> pollAndAdvanceHandlers(registeredHandlers), 0, period, timeUnit);
+		executor.scheduleWithFixedDelay(() -> pollAndAdvanceHandlers(registeredHandlers), 0, period, timeUnit);
 	}
 
 	private void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		try {
-			synchronized (this) {
-				for (BasicCrontabHandler handler : handlers.values())
+		synchronized (this) {
+			for (BasicCrontabHandler handler : handlers.values())
+				try {
 					if (handler.getEnabled() != null) {
 						ZonedDateTime now = ZonedDateTime.now();
 						if (handler.shouldRun(now))
 							handler.handle(now);
 					}
-			}
-		} catch (Exception e) {
-			log.error("uncaught exception in Http-poller loop", e);
-			e.printStackTrace();
+				} catch (Exception e) {
+					log.error("uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
+					e.printStackTrace();
+				}
 		}
 	}
 }
