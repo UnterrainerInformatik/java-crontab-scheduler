@@ -60,7 +60,7 @@ public abstract class BasicCrontabHandler {
 		return executionTime.timeToNextExecution(now).get().toMillis();
 	}
 
-	public synchronized boolean shouldRun(final ZonedDateTime now) {
+	public boolean shouldRun(final ZonedDateTime now) {
 		if (lastChecked == null)
 			lastChecked = now;
 		long duration = ChronoUnit.MILLIS.between(lastChecked, now);
