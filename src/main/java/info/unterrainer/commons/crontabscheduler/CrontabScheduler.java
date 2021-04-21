@@ -48,8 +48,13 @@ public class CrontabScheduler {
 		synchronized (this) {
 			pollAndAdvanceHandlers(save);
 			for (BasicCrontabHandler h : registeredHandlers.values())
-				if (save.containsKey(h.getName()))
-					h.millisTillNextExecution = save.get(h.getName()).millisTillNextExecution;
+				if (save.containsKey(h.getName())) {
+					BasicCrontabHandler old = save.get(h.getName());
+					// Only exchange time-to-go if the old on is out of the 'save-zone'.
+					// Which is
+					if (old.millisTillNextExecution < 60000)
+						h.millisTillNextExecution = old.millisTillNextExecution;
+				}
 			save.clear();
 		}
 	}

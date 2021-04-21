@@ -1,5 +1,6 @@
 package info.unterrainer.commons.crontabscheduler;
 
+import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
 
@@ -9,9 +10,7 @@ import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 
 import lombok.Data;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Data
 public abstract class BasicCrontabHandler {
 
@@ -48,19 +47,22 @@ public abstract class BasicCrontabHandler {
 
 	public long getMillisFromLastExecution() {
 		ZonedDateTime now = ZonedDateTime.now();
-		return executionTime.timeFromLastExecution(now).get().toMillis();
+		Duration d = executionTime.timeFromLastExecution(now).get();
+		return d.toMillis();
 	}
 
 	public long getMillisTillNextExecution() {
 		ZonedDateTime now = ZonedDateTime.now();
-		return executionTime.timeToNextExecution(now).get().toMillis();
+		Duration d = executionTime.timeToNextExecution(now).get();
+		return d.toMillis();
 	}
 
 	public long getMillisTillNextExecution(final ZonedDateTime now) {
-		return executionTime.timeToNextExecution(now).get().toMillis();
+		Duration d = executionTime.timeToNextExecution(now).get();
+		return d.toMillis();
 	}
 
-	public synchronized boolean shouldRun(final ZonedDateTime now) {
+	public boolean shouldRun(final ZonedDateTime now) {
 		if (lastChecked == null)
 			lastChecked = now;
 		long duration = ChronoUnit.MILLIS.between(lastChecked, now);
