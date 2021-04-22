@@ -3,6 +3,7 @@ package info.unterrainer.commons.crontabscheduler;
 import java.time.Duration;
 import java.time.ZonedDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 import com.cronutils.descriptor.CronDescriptor;
 import com.cronutils.model.Cron;
@@ -27,7 +28,7 @@ public abstract class BasicCrontabHandler {
 	protected ExecutionTime executionTime;
 
 	protected ZonedDateTime lastChecked;
-	protected long millisTillNextExecution;
+	protected Long millisTillNextExecution;
 
 	public BasicCrontabHandler(final String name, final Boolean enabled, final String data, final String cronDef,
 			final CronParser parser, final CronDescriptor descriptor) {
@@ -42,18 +43,10 @@ public abstract class BasicCrontabHandler {
 		cron.validate();
 		description = descriptor.describe(cron);
 		executionTime = ExecutionTime.forCron(cron);
-		millisTillNextExecution = getMillisTillNextExecution();
 	}
 
-	public long getMillisFromLastExecution() {
-		ZonedDateTime now = ZonedDateTime.now();
+	public long getMillisFromLastExecution(final ZonedDateTime now) {
 		Duration d = executionTime.timeFromLastExecution(now).get();
-		return d.toMillis();
-	}
-
-	public long getMillisTillNextExecution() {
-		ZonedDateTime now = ZonedDateTime.now();
-		Duration d = executionTime.timeToNextExecution(now).get();
 		return d.toMillis();
 	}
 
@@ -62,17 +55,28 @@ public abstract class BasicCrontabHandler {
 		return d.toMillis();
 	}
 
-	public boolean shouldRun(final ZonedDateTime now) {
-		if (lastChecked == null)
-			lastChecked = now;
-		long duration = ChronoUnit.MILLIS.between(lastChecked, now);
+	public synchronized void eventuallyHandle(final ZonedDateTime now) {
+		long next = getMillisTillNextExecution(now);
+
+		// Clear disabled items.
+		if (enabled == null || !enabled) {
+			millisTillNextExecution = null;
+			return;
+		}
+
+		// Initialize new items.
+		if (millisTillNextExecution == null)
+			millisTillNextExecution = next;
+
+		long duration = ChronoUnit.MILLIS.between(Optional.ofNullable(lastChecked).orElse(now), now);
 		lastChecked = now;
 		millisTillNextExecution -= duration;
-		if (millisTillNextExecution < 0) {
-			millisTillNextExecution = getMillisTillNextExecution(now);
-			return enabled;
+		if (name.equals("25_on"))
+			System.out.println("millis: " + millisTillNextExecution);
+		if (millisTillNextExecution <= 0) {
+			millisTillNextExecution = next;
+			handle(now);
 		}
-		return false;
 	}
 
 	public abstract void handle(final ZonedDateTime started);
