@@ -55,12 +55,6 @@ public class CrontabScheduler {
 
 		Map<String, BasicCrontabHandler> oldMap = registeredHandlers;
 		registeredHandlers = handlers;
-
-		for (BasicCrontabHandler h : registeredHandlers.values())
-			if (oldMap.containsKey(h.getName())) {
-				BasicCrontabHandler old = oldMap.get(h.getName());
-				h.millisTillNextExecution = old.millisTillNextExecution;
-			}
 		pollAndAdvanceHandlers(oldMap);
 	}
 

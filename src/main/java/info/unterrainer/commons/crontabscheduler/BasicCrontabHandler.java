@@ -71,6 +71,8 @@ public abstract class BasicCrontabHandler {
 		long duration = ChronoUnit.MILLIS.between(Optional.ofNullable(lastChecked).orElse(now), now);
 		lastChecked = now;
 		millisTillNextExecution -= duration;
+		if (name.equals("25_on"))
+			System.out.println("millis: " + millisTillNextExecution);
 		if (millisTillNextExecution <= 0) {
 			millisTillNextExecution = next;
 			handle(now);
