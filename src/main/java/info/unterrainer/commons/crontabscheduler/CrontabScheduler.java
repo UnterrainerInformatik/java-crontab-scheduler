@@ -1,7 +1,10 @@
 package info.unterrainer.commons.crontabscheduler;
 
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -9,7 +12,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import lombok.Builder;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -17,52 +19,80 @@ public class CrontabScheduler {
 
 	protected ScheduledExecutorService executor;
 	protected Map<String, BasicCrontabHandler> registeredHandlers = new HashMap<>();
-	protected Map<String, BasicCrontabHandler> save = new HashMap<>();
 
-	public void addHandler(final @NonNull BasicCrontabHandler handler, final String name) {
-		synchronized (this) {
+	/**
+	 * Sets new handlers or replaces existing ones in a way that no event-trigger
+	 * gets lost.
+	 *
+	 * @param handlers the handlers to set or use to replace the old ones
+	 */
+	public synchronized void setHandlers(final Collection<BasicCrontabHandler> handlers) {
+		if (handlers == null)
+			throw new NullPointerException("Specify a valid collection of handlers.");
+		for (BasicCrontabHandler handler : handlers)
 			if (handler == null)
-				throw new NullPointerException("Cannot insert null value as handler.");
-			registeredHandlers.put(name, handler);
-		}
+				throw new NullPointerException("The list to set contains a null-value as a handler.");
+
+		Map<String, BasicCrontabHandler> newMap = new HashMap<>();
+		for (BasicCrontabHandler handler : handlers)
+			newMap.put(handler.getName(), handler);
+		setHandlers(newMap);
 	}
 
-	public BasicCrontabHandler removeHandler(@NonNull final String name) {
-		synchronized (this) {
-			if (!registeredHandlers.containsKey(name))
-				return null;
-			return registeredHandlers.remove(name);
-		}
+	/**
+	 * Sets new handlers or replaces existing ones in a way that no event-trigger
+	 * gets lost.
+	 *
+	 * @param handlers the handlers to set or use to replace the old ones
+	 */
+	public synchronized void setHandlers(final Map<String, BasicCrontabHandler> handlers) {
+		if (handlers == null)
+			throw new NullPointerException("Specify a valid collection of handlers.");
+
+		for (BasicCrontabHandler handler : handlers.values())
+			if (handler == null)
+				throw new NullPointerException("The list to set contains a null-value as a handler.");
+
+		Map<String, BasicCrontabHandler> oldMap = registeredHandlers;
+		registeredHandlers = handlers;
+
+		for (BasicCrontabHandler h : registeredHandlers.values())
+			if (oldMap.containsKey(h.getName())) {
+				BasicCrontabHandler old = oldMap.get(h.getName());
+				h.millisTillNextExecution = old.millisTillNextExecution;
+			}
+		pollAndAdvanceHandlers(oldMap);
 	}
 
-	public void prepareReplacingHandlers() {
-		synchronized (this) {
-			Map<String, BasicCrontabHandler> temp = registeredHandlers;
-			registeredHandlers = save;
-			save = temp;
-			registeredHandlers.clear();
-		}
+	/**
+	 * Gets you a detached copy of the underlying handler-map to edit and manipulate
+	 * in order to later set it again using {@link #setHandlers(Map)}.<br>
+	 * Handlers are still references. So if you manipulate the handlers in this list
+	 * directly, you manipulate the same objects as in the registered-handlers-map
+	 * that's being currently used.
+	 *
+	 * @return a new handler-map
+	 */
+	public synchronized Map<String, BasicCrontabHandler> getCopyOfHandlerMap() {
+		return new HashMap<>(registeredHandlers);
 	}
 
-	public void finishReplacingHandlers() {
-		synchronized (this) {
-			pollAndAdvanceHandlers(save);
-			for (BasicCrontabHandler h : registeredHandlers.values())
-				if (save.containsKey(h.getName())) {
-					BasicCrontabHandler old = save.get(h.getName());
-					// Only exchange time-to-go if the old on is out of the 'save-zone'.
-					// Which is
-					if (old.millisTillNextExecution < 60000)
-						h.millisTillNextExecution = old.millisTillNextExecution;
-				}
-			save.clear();
-		}
+	/**
+	 * Gets you a detached copy of the underlying handler-maps' values to edit and
+	 * manipulate in order to later set it again using
+	 * {@link #setHandlers(Collection)}.<br>
+	 * Handlers are still references. So if you manipulate the handlers in this list
+	 * directly, you manipulate the same objects as in the registered-handlers-map
+	 * that's being currently used.
+	 *
+	 * @return a new handler-map
+	 */
+	public synchronized List<BasicCrontabHandler> getCopyOfHandlers() {
+		return new ArrayList<>(registeredHandlers.values());
 	}
 
-	public void clearHandlers() {
-		synchronized (this) {
-			registeredHandlers.clear();
-		}
+	public synchronized void clearHandlers() {
+		registeredHandlers.clear();
 	}
 
 	@Builder
@@ -75,19 +105,18 @@ public class CrontabScheduler {
 		executor.scheduleWithFixedDelay(() -> pollAndAdvanceHandlers(registeredHandlers), 0, period, timeUnit);
 	}
 
-	private void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		synchronized (this) {
-			for (BasicCrontabHandler handler : handlers.values())
-				try {
-					if (handler.getEnabled() != null) {
-						ZonedDateTime now = ZonedDateTime.now();
-						if (handler.shouldRun(now))
-							handler.handle(now);
-					}
-				} catch (Exception e) {
-					log.error("uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
-					e.printStackTrace();
-				}
-		}
+	private synchronized void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
+		pollAndAdvanceHandlers(ZonedDateTime.now(), handlers);
+	}
+
+	private synchronized void pollAndAdvanceHandlers(final ZonedDateTime now,
+			final Map<String, BasicCrontabHandler> handlers) {
+		for (BasicCrontabHandler handler : handlers.values())
+			try {
+				handler.eventuallyHandle(now);
+			} catch (Exception e) {
+				log.error("uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
+				e.printStackTrace();
+			}
 	}
 }
