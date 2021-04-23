@@ -57,12 +57,12 @@ public abstract class BasicCrontabHandler {
 		return d.toMillis();
 	}
 
-	public void initialize(final ZonedDateTime now) {
+	void initialize(final ZonedDateTime now) {
 		millisTillNextExecution = getMillisTillNextExecution(now);
 		lastChecked = now;
 	}
 
-	public synchronized void eventuallyHandle(final ZonedDateTime now) {
+	synchronized void eventuallyHandle(final ZonedDateTime now) {
 		long next = getMillisTillNextExecution(now);
 
 		// Clear disabled items.
