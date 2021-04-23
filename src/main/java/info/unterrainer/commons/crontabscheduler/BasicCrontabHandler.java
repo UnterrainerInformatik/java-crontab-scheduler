@@ -11,7 +11,9 @@ import com.cronutils.model.time.ExecutionTime;
 import com.cronutils.parser.CronParser;
 
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Data
 public abstract class BasicCrontabHandler {
 
@@ -55,6 +57,11 @@ public abstract class BasicCrontabHandler {
 		return d.toMillis();
 	}
 
+	public void initialize(final ZonedDateTime now) {
+		millisTillNextExecution = getMillisTillNextExecution(now);
+		lastChecked = now;
+	}
+
 	public synchronized void eventuallyHandle(final ZonedDateTime now) {
 		long next = getMillisTillNextExecution(now);
 
@@ -71,10 +78,10 @@ public abstract class BasicCrontabHandler {
 		long duration = ChronoUnit.MILLIS.between(Optional.ofNullable(lastChecked).orElse(now), now);
 		lastChecked = now;
 		millisTillNextExecution -= duration;
-		if (name.equals("25_on"))
-			System.out.println("millis: " + millisTillNextExecution);
+		log.debug(name + ": Time until next execution: " + Math.round(millisTillNextExecution / 1000D) + "s.");
 		if (millisTillNextExecution <= 0) {
 			millisTillNextExecution = next;
+			log.debug(name + ": Calling handle(now).");
 			handle(now);
 		}
 	}

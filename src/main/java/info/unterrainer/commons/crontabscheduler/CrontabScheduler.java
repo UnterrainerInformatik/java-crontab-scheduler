@@ -10,6 +10,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import lombok.Builder;
 import lombok.extern.slf4j.Slf4j;
@@ -46,6 +47,7 @@ public class CrontabScheduler {
 	 * @param handlers the handlers to set or use to replace the old ones
 	 */
 	public synchronized void setHandlers(final Map<String, BasicCrontabHandler> handlers) {
+		ZonedDateTime now = ZonedDateTime.now();
 		if (handlers == null)
 			throw new NullPointerException("Specify a valid collection of handlers.");
 
@@ -53,9 +55,16 @@ public class CrontabScheduler {
 			if (handler == null)
 				throw new NullPointerException("The list to set contains a null-value as a handler.");
 
+		log.debug("Setting handlers to [{}].", String.join(",",
+				handlers.values().stream().map(BasicCrontabHandler::getName).collect(Collectors.toList())));
+
+		// Switch handlers.
 		Map<String, BasicCrontabHandler> oldMap = registeredHandlers;
 		registeredHandlers = handlers;
-		pollAndAdvanceHandlers(oldMap);
+
+		for (BasicCrontabHandler handler : registeredHandlers.values())
+			handler.initialize(now);
+		pollAndAdvanceHandlers(now, oldMap);
 	}
 
 	/**
@@ -86,6 +95,7 @@ public class CrontabScheduler {
 	}
 
 	public synchronized void clearHandlers() {
+		log.debug("Clearing handler-map.");
 		registeredHandlers.clear();
 	}
 
@@ -109,7 +119,7 @@ public class CrontabScheduler {
 			try {
 				handler.eventuallyHandle(now);
 			} catch (Exception e) {
-				log.error("uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
+				log.error("Uncaught exception in Crontab-Scheduler loop for handler [" + handler.name + "]", e);
 				e.printStackTrace();
 			}
 	}
