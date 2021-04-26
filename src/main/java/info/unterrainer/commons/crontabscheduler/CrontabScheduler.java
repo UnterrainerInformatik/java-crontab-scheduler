@@ -1,5 +1,6 @@
 package info.unterrainer.commons.crontabscheduler;
 
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CrontabScheduler {
+
+	public static final ZoneId LOCAL_ZONE = ZoneId.of("Europe/Vienna");
 
 	protected ScheduledExecutorService executor;
 	protected Map<String, BasicCrontabHandler> registeredHandlers = new HashMap<>();
@@ -110,7 +113,7 @@ public class CrontabScheduler {
 	}
 
 	private synchronized void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		pollAndAdvanceHandlers(ZonedDateTime.now(), handlers);
+		pollAndAdvanceHandlers(ZonedDateTime.now(LOCAL_ZONE), handlers);
 	}
 
 	private synchronized void pollAndAdvanceHandlers(final ZonedDateTime now,
