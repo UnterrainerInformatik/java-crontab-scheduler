@@ -50,7 +50,7 @@ public class CrontabScheduler {
 	 * @param handlers the handlers to set or use to replace the old ones
 	 */
 	public synchronized void setHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		ZonedDateTime now = ZonedDateTime.now();
+		ZonedDateTime now = ZonedDateTime.now(LOCAL_ZONE);
 		if (handlers == null)
 			throw new NullPointerException("Specify a valid collection of handlers.");
 
