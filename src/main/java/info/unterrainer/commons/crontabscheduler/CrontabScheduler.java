@@ -1,6 +1,5 @@
 package info.unterrainer.commons.crontabscheduler;
 
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -18,8 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CrontabScheduler {
-
-	public static final ZoneId LOCAL_ZONE = ZoneId.of("Europe/Vienna");
 
 	protected ScheduledExecutorService executor;
 	protected Map<String, BasicCrontabHandler> registeredHandlers = new HashMap<>();
@@ -50,7 +47,7 @@ public class CrontabScheduler {
 	 * @param handlers the handlers to set or use to replace the old ones
 	 */
 	public synchronized void setHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		ZonedDateTime now = ZonedDateTime.now(LOCAL_ZONE);
+		ZonedDateTime now = ZonedDateTime.now();
 		if (handlers == null)
 			throw new NullPointerException("Specify a valid collection of handlers.");
 
@@ -113,7 +110,7 @@ public class CrontabScheduler {
 	}
 
 	private synchronized void pollAndAdvanceHandlers(final Map<String, BasicCrontabHandler> handlers) {
-		pollAndAdvanceHandlers(ZonedDateTime.now(LOCAL_ZONE), handlers);
+		pollAndAdvanceHandlers(ZonedDateTime.now(), handlers);
 	}
 
 	private synchronized void pollAndAdvanceHandlers(final ZonedDateTime now,
