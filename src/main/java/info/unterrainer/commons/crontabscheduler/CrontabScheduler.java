@@ -20,14 +20,26 @@ public class CrontabScheduler {
 
 	protected ScheduledExecutorService executor;
 	protected Map<String, BasicCrontabHandler> registeredHandlers = new HashMap<>();
+	protected boolean handlingActive = true;
+
+	public CrontabScheduler activateHandling() {
+		handlingActive = true;
+		return this;
+	}
+
+	public CrontabScheduler deactivateHandling() {
+		handlingActive = false;
+		return this;
+	}
 
 	/**
 	 * Sets new handlers or replaces existing ones in a way that no event-trigger
 	 * gets lost.
 	 *
 	 * @param handlers the handlers to set or use to replace the old ones
+	 * @return an instance of {@link CrontabScheduler} to provide a fluent interface
 	 */
-	public synchronized void setHandlers(final Collection<BasicCrontabHandler> handlers) {
+	public synchronized CrontabScheduler setHandlers(final Collection<BasicCrontabHandler> handlers) {
 		if (handlers == null)
 			throw new NullPointerException("Specify a valid collection of handlers.");
 		for (BasicCrontabHandler handler : handlers)
@@ -38,6 +50,7 @@ public class CrontabScheduler {
 		for (BasicCrontabHandler handler : handlers)
 			newMap.put(handler.getName(), handler);
 		setHandlers(newMap);
+		return this;
 	}
 
 	/**
@@ -45,8 +58,9 @@ public class CrontabScheduler {
 	 * gets lost.
 	 *
 	 * @param handlers the handlers to set or use to replace the old ones
+	 * @return an instance of {@link CrontabScheduler} to provide a fluent interface
 	 */
-	public synchronized void setHandlers(final Map<String, BasicCrontabHandler> handlers) {
+	public synchronized CrontabScheduler setHandlers(final Map<String, BasicCrontabHandler> handlers) {
 		ZonedDateTime now = ZonedDateTime.now();
 		if (handlers == null)
 			throw new NullPointerException("Specify a valid collection of handlers.");
@@ -65,6 +79,7 @@ public class CrontabScheduler {
 		for (BasicCrontabHandler handler : registeredHandlers.values())
 			handler.initialize(now);
 		pollAndAdvanceHandlers(now, oldMap);
+		return this;
 	}
 
 	/**
@@ -94,9 +109,10 @@ public class CrontabScheduler {
 		return new ArrayList<>(registeredHandlers.values());
 	}
 
-	public synchronized void clearHandlers() {
+	public synchronized CrontabScheduler clearHandlers() {
 		log.debug("Clearing handler-map.");
 		registeredHandlers.clear();
+		return this;
 	}
 
 	@Builder
@@ -115,6 +131,10 @@ public class CrontabScheduler {
 
 	private synchronized void pollAndAdvanceHandlers(final ZonedDateTime now,
 			final Map<String, BasicCrontabHandler> handlers) {
+
+		if (!handlingActive)
+			return;
+
 		for (BasicCrontabHandler handler : handlers.values())
 			try {
 				handler.eventuallyHandle(now);
